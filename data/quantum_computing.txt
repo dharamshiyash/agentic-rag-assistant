@@ -1,0 +1,7 @@
+Quantum computing is a type of computing that takes advantage of the strange phenomena of quantum mechanics, such as superposition and entanglement.
+
+Traditional computers use bits as the basic unit of information, which can exist in one of two states: 0 or 1. Quantum computers, on the other hand, use quantum bits, or qubits. A qubit can exist in a state of 0, 1, or both simultaneously (superposition). This allows quantum computers to perform certain calculations much faster than classical computers.
+
+Entanglement is another key property where pairs or groups of particles interact in ways such that the quantum state of each particle cannot be described independently of the others, even when the particles are separated by a large distance.
+
+Potential applications include cryptography, drug discovery, financial modeling, and complex system optimization.

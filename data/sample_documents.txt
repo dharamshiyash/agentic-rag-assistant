@@ -1,0 +1,7 @@
+This file contains miscellaneous sample information to test the retrieval system.
+
+The capital of France is Paris.
+The speed of light in a vacuum is approximately 299,792,458 meters per second.
+Water freezes at 0 degrees Celsius and boils at 100 degrees Celsius at standard atmospheric pressure.
+The Python programming language was created by Guido van Rossum and first released in 1991.
+LangChain is a framework for developing applications powered by language models.
