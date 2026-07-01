@@ -1,77 +1,113 @@
-from src.utils import setup_logger
+"""
+Retrieval module for the Agentic RAG Assistant.
+Implements MMR (Maximal Marginal Relevance) retrieval for diverse,
+high-quality document retrieval from the FAISS vector store.
+"""
+
+from src.utils import setup_logger, log_step
 
 logger = setup_logger(__name__)
 
-# Similarity threshold to filter out irrelevant documents
-# L2 distance: Lower is better. 
-# Cosine similarity: Higher is better (if normalized).
-# FAISS L2: 0 is identical.
-# For this implementation, we will assume the vector store uses L2 or Inner Product, 
-# but LangChain's FAISS wrapper usually returns a score.
-# If using normalized embeddings (like all-MiniLM-L6-v2) and Inner Product, it is effectively cosine similarity [0, 1].
+# ─── Retrieval Configuration ───
+# MMR balances relevance with diversity to avoid redundant results.
+SEARCH_TYPE = "mmr"
+SEARCH_K = 5           # Number of documents to return
+FETCH_K = 20           # Number of candidates to consider for MMR
+LAMBDA_MULT = 0.7      # 0 = max diversity, 1 = max relevance
 
-SIMILARITY_THRESHOLD = 0.5
-
-def get_relevant_documents(vector_store, query, k=3, threshold=SIMILARITY_THRESHOLD):
-    """
-    Retrieves documents relevant to the query.
-    Filters out documents with a similarity score below the threshold.
-    """
-    logger.info(f"Retrieving documents for query: '{query}' with threshold {threshold}...")
-    
-    # search_type="similarity_score_threshold" is supported by some retrievers but FAISS implementation 
-    # in LangChain usually returns scores differently. 
-    # reliable method: use similarity_search_with_score
-    
-    results = vector_store.similarity_search_with_score(query, k=k)
-    
-    relevant_docs = []
-    for doc, score in results:
-        # Note on FAISS score: 
-        # By default, FAISS uses L2 distance (lower is better).
-        # However, it depends on how the index was created.
-        # With sentence-transformers/all-MiniLM-L6-v2 and default FAISS, it's usually L2.
-        # BUT LangChain often validates scores.
-        # Let's inspect the behavior. 
-        # If score is L2 distance, we need a max distance threshold.
-        # If score is cosine similarity, we need a min similarity threshold.
-        
-        # NOTE: For simplicity and robustness without dry-running, 
-        # we will use the `similarity_score_threshold` search type provided by LangChain
-        # if the vector store supports it as a Retriever.
-        # But to be explicit and control the logic:
-        
-        logger.debug(f"Doc: {doc.page_content[:30]}... - Score: {score}")
-        
-        # Assuming L2 distance (lower is better) for now. 
-        # 1.0 is quite far for normalized vectors (0-2 range). 
-        # Let's aim for < 1.0 or < 0.8.
-        # Or better yet, let's use the retriever interface which handles this abstractly if possible.
-        
-        # Let's stick onto raw score check for transparency as requested.
-        # For L2 distance on normalized vectors:
-        # Distance = 2 * (1 - cosine_similarity)
-        # Cosine sim of 0.5 => Distance = 1.0
-        # Cosine sim of 0.7 => Distance = 0.6
-        # So a threshold of 0.8-1.0 (distance) is roughly 0.5-0.6 cosine similarity.
-        
-        if score < 1.1: # Accepting reasonable relevance.
-             relevant_docs.append(doc)
-    
-    if not relevant_docs:
-        logger.info("No documents passed the similarity threshold.")
-    else:
-        logger.info(f"Found {len(relevant_docs)} documents above threshold.")
-        
-    return relevant_docs
 
 def get_retriever(vector_store):
     """
-    Returns a runnable retriever.
-    This function wraps the logic to return a formatted string for the LLM.
+    Returns a LangChain retriever configured with MMR search.
+
+    MMR (Maximal Marginal Relevance) selects documents that are both
+    relevant to the query AND diverse from each other. This prevents
+    returning near-duplicate chunks and provides broader context.
+
+    Args:
+        vector_store: A FAISS vector store instance.
+
+    Returns:
+        A LangChain Retriever object that returns Document objects
+        with full metadata intact.
     """
-    def retrieve_fn(query):
-        docs = get_relevant_documents(vector_store, query)
-        return "\n\n".join([d.page_content for d in docs])
-    
-    return retrieve_fn
+    log_step("Initializing MMR retriever...", "step")
+    logger.info(
+        f"Creating retriever: type={SEARCH_TYPE}, k={SEARCH_K}, "
+        f"fetch_k={FETCH_K}, lambda={LAMBDA_MULT}"
+    )
+
+    retriever = vector_store.as_retriever(
+        search_type=SEARCH_TYPE,
+        search_kwargs={
+            "k": SEARCH_K,
+            "fetch_k": FETCH_K,
+            "lambda_mult": LAMBDA_MULT,
+        },
+    )
+
+    log_step("Retriever ready.", "success")
+    logger.info("Retriever initialized successfully.")
+    return retriever
+
+
+def format_docs_for_prompt(docs) -> str:
+    """
+    Formats retrieved documents into a structured context string
+    for the LLM prompt. Includes source metadata with each chunk
+    so the LLM can reference specific documents and sections.
+
+    Args:
+        docs: A list of LangChain Document objects with metadata.
+
+    Returns:
+        A formatted string containing document content and metadata.
+    """
+    if not docs:
+        return "No relevant documents found."
+
+    formatted_parts = []
+    for doc in docs:
+        meta = doc.metadata
+        source_info = (
+            f"[Source: {meta.get('document_name', 'Unknown')} | "
+            f"Section: {meta.get('section', 'General')} | "
+            f"Chunk: {meta.get('chunk_id', 'N/A')}]"
+        )
+        formatted_parts.append(f"{source_info}\n{doc.page_content}")
+
+    return "\n\n---\n\n".join(formatted_parts)
+
+
+def extract_sources(docs) -> list:
+    """
+    Extracts source metadata from retrieved documents for
+    display in the UI as source cards.
+
+    Args:
+        docs: A list of LangChain Document objects with metadata.
+
+    Returns:
+        A list of dictionaries with source information:
+        [{document_name, section, chunk_id, topic}, ...]
+    """
+    sources = []
+    seen = set()
+
+    for doc in docs:
+        meta = doc.metadata
+        key = (
+            meta.get("document_name", ""),
+            meta.get("section", ""),
+            meta.get("chunk_id", ""),
+        )
+        if key not in seen:
+            seen.add(key)
+            sources.append({
+                "document_name": meta.get("document_name", "Unknown"),
+                "section": meta.get("section", "General"),
+                "chunk_id": meta.get("chunk_id", "N/A"),
+                "topic": meta.get("topic", "Unknown"),
+            })
+
+    return sources

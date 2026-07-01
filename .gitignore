@@ -5,6 +5,11 @@ __pycache__/
 venv/
 .idea/
 .vscode/
-faiss_index
+faiss_index/
 .streamlit/
-
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.pytest_cache/
+*.log
