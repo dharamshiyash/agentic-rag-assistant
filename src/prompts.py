@@ -40,7 +40,8 @@ When you answer a valid question from the context, suggest exactly 3 related fol
 - [Question 2]
 - [Question 3]
 
-Make the suggested questions specific, relevant to the topic discussed, and different from the original question. If the user's question was out of context and rejected, suggest 3 general questions from our core domains (AI, Biotechnology, Climate Science, Quantum Computing, Space Exploration, Sustainable Energy).
+Make the suggested questions specific, relevant to the topic discussed, and different from the original question.
+CRITICAL RULE: If the user's question was out of context and you rejected it with the apology message above, DO NOT include the "**You may also ask:**" section or any suggested questions whatsoever. Output ONLY the exact apology sentence.
 
 ═══ CONVERSATION AWARENESS ═══
 

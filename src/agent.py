@@ -271,7 +271,7 @@ class RAGAgent:
     def _parse_suggested_questions(self, response: str) -> tuple:
         """
         Parses the LLM response to separate the main answer from
-        suggested follow-up questions.
+        suggested follow-up questions. Suppresses suggestions if out-of-context.
 
         Args:
             response: The full response text from the LLM.
@@ -279,6 +279,16 @@ class RAGAgent:
         Returns:
             A tuple of (answer_text, list_of_suggested_questions).
         """
+        out_of_context_phrases = [
+            "out of context for our knowledge base",
+            "can't provide an answer as this question is out of context",
+            "don't have enough information in my knowledge base",
+        ]
+        if any(phrase.lower() in response.lower() for phrase in out_of_context_phrases):
+            pattern = r"\s*(?:However,\s*I\s*can\s*suggest|\*\*You may also ask:\*\*).*"
+            cleaned = re.sub(pattern, "", response, flags=re.DOTALL | re.IGNORECASE).strip()
+            return cleaned, []
+
         suggested = []
 
         # Look for the "You may also ask:" section
