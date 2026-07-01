@@ -196,14 +196,14 @@ def render_sidebar():
             st.info("Restart the app to include this document in the knowledge base.")
 
 
-def render_suggested_questions(questions):
+def render_suggested_questions(questions, key_prefix="sug"):
     """Renders suggested follow-up questions as clickable buttons."""
     if not questions:
         return
 
     st.markdown("<br>**💡 You may also ask:**", unsafe_allow_html=True)
     for i, q in enumerate(questions):
-        if st.button(q, key=f"suggestion_{len(st.session_state.messages)}_{i}"):
+        if st.button(q, key=f"{key_prefix}_{i}"):
             st.session_state.pending_question = q
             st.rerun()
 
@@ -239,13 +239,13 @@ def main():
         st.session_state.messages = []
 
     # Display chat history
-    for message in st.session_state.messages:
+    for idx, message in enumerate(st.session_state.messages):
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
             # Re-render suggestions for assistant messages (sources removed per request)
             if message["role"] == "assistant":
                 if message.get("suggested_questions"):
-                    render_suggested_questions(message["suggested_questions"])
+                    render_suggested_questions(message["suggested_questions"], key_prefix=f"hist_{idx}")
 
     # ─── Handle Pending Suggested Question ───
     prompt = None
@@ -275,8 +275,8 @@ def main():
                 full_response
             )
 
-            # Render suggestions
-            render_suggested_questions(suggested)
+            # Render suggestions with a unique key for the live message
+            render_suggested_questions(suggested, key_prefix=f"live_{len(st.session_state.messages)}")
 
         # Save assistant message
         st.session_state.messages.append({
