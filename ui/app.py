@@ -157,7 +157,7 @@ def render_sidebar():
         )
         st.markdown(
             '<div class="sidebar-info">'
-            "<b>Model:</b> LLaMA 3.1 8B (Groq)<br>"
+            "<b>Model:</b> LLaMA 3.3 70B (Groq)<br>"
             "<b>Embeddings:</b> all-MiniLM-L6-v2<br>"
             "<b>Vector DB:</b> FAISS<br>"
             "<b>Retrieval:</b> MMR (k=5)<br>"

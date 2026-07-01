@@ -29,7 +29,7 @@ from src.prompts import get_rag_prompt_template
 logger = setup_logger(__name__)
 
 # ─── Configuration ───
-LLM_MODEL = "llama-3.1-8b-instant"
+LLM_MODEL = "llama-3.3-70b-versatile"
 LLM_TEMPERATURE = 0
 MEMORY_WINDOW = 5  # Number of conversation turns to keep in memory
 
