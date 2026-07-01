@@ -1,8 +1,7 @@
 """
 Streamlit UI for the Agentic RAG Assistant.
-Provides a professional chat interface with streaming responses,
-source attribution cards, suggested follow-up questions, and
-a sidebar with system information and controls.
+Provides a clean, welcoming light-themed chat interface with streaming responses,
+suggested follow-up questions, and a sidebar with system information and controls.
 """
 
 import streamlit as st
@@ -22,104 +21,96 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ─── Custom CSS ───
+# ─── Custom CSS (Clean Light Theme) ───
 st.markdown("""
 <style>
     /* ── Main Theme ── */
     .stApp {
-        background-color: #0e1117;
+        background-color: #f8fafc;
+        color: #0f172a;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    /* ── Headers & Text ── */
+    h1, h2, h3, h4, h5, h6, p, span, div {
+        color: #0f172a;
     }
 
     /* ── Chat Messages ── */
     .stChatMessage {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
         border-radius: 12px;
-        margin-bottom: 8px;
+        padding: 1rem;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
-    /* ── Source Card ── */
-    .source-card {
-        background: linear-gradient(135deg, #1a1f2e 0%, #1e2640 100%);
-        border: 1px solid #2d3748;
-        border-radius: 10px;
-        padding: 12px 16px;
-        margin: 6px 0;
-        font-size: 0.85em;
-        color: #a0aec0;
-        transition: border-color 0.2s ease;
-    }
-    .source-card:hover {
-        border-color: #4a6cf7;
-    }
-    .source-card .source-topic {
-        color: #4a6cf7;
-        font-weight: 600;
-        font-size: 0.95em;
-        margin-bottom: 4px;
-    }
-    .source-card .source-detail {
-        color: #718096;
-        font-size: 0.85em;
-    }
-
-    /* ── Suggested Question Button ── */
+    /* ── Suggested Question Buttons ── */
     .stButton > button {
-        background: linear-gradient(135deg, #1a1f2e 0%, #1e2640 100%);
-        border: 1px solid #2d3748;
+        background-color: #ffffff;
+        border: 1px solid #cbd5e1;
         border-radius: 8px;
-        color: #a0aec0;
-        padding: 8px 16px;
-        font-size: 0.85em;
+        color: #1e293b !important;
+        padding: 10px 16px;
+        font-size: 0.9em;
+        font-weight: 500;
         width: 100%;
         text-align: left;
         transition: all 0.2s ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
     }
     .stButton > button:hover {
-        border-color: #4a6cf7;
-        color: #e2e8f0;
-        background: linear-gradient(135deg, #1e2640 0%, #243056 100%);
+        border-color: #2563eb;
+        color: #2563eb !important;
+        background-color: #eff6ff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.1);
     }
 
-    /* ── Sidebar ── */
+    /* ── Sidebar Styling ── */
+    [data-testid="stSidebar"] {
+        background-color: #ffffff;
+        border-right: 1px solid #e2e8f0;
+    }
     .sidebar-header {
-        font-size: 1.1em;
-        font-weight: 600;
-        color: #e2e8f0;
-        margin-bottom: 8px;
+        font-size: 1.05em;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 10px;
         padding-bottom: 8px;
-        border-bottom: 1px solid #2d3748;
+        border-bottom: 2px solid #f1f5f9;
     }
     .sidebar-topic {
-        background: linear-gradient(135deg, #1a1f2e 0%, #1e2640 100%);
-        border: 1px solid #2d3748;
+        background-color: #f1f5f9;
+        border: 1px solid #e2e8f0;
         border-radius: 8px;
         padding: 8px 12px;
-        margin: 4px 0;
-        color: #a0aec0;
-        font-size: 0.9em;
+        margin: 6px 0;
+        color: #334155;
+        font-size: 0.88em;
+        font-weight: 500;
+        transition: background-color 0.2s ease;
+    }
+    .sidebar-topic:hover {
+        background-color: #e2e8f0;
+        color: #0f172a;
     }
     .sidebar-info {
-        color: #718096;
-        font-size: 0.8em;
+        color: #475569;
+        font-size: 0.82em;
+        line-height: 1.6;
         margin-top: 4px;
-    }
-
-    /* ── Sources Header ── */
-    .sources-header {
-        color: #4a6cf7;
-        font-size: 0.9em;
-        font-weight: 600;
-        margin-top: 12px;
-        margin-bottom: 6px;
     }
 
     /* ── Hide Streamlit branding ── */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
 
-    /* ── Divider ── */
+    /* ── Section Divider ── */
     .section-divider {
-        border-top: 1px solid #2d3748;
-        margin: 16px 0;
+        border-top: 1px solid #e2e8f0;
+        margin: 18px 0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -166,11 +157,11 @@ def render_sidebar():
         )
         st.markdown(
             '<div class="sidebar-info">'
-            "Model: LLaMA 3.1 8B (Groq)<br>"
-            "Embeddings: all-MiniLM-L6-v2<br>"
-            "Vector DB: FAISS<br>"
-            "Retrieval: MMR (k=5)<br>"
-            "Framework: LangChain"
+            "<b>Model:</b> LLaMA 3.1 8B (Groq)<br>"
+            "<b>Embeddings:</b> all-MiniLM-L6-v2<br>"
+            "<b>Vector DB:</b> FAISS<br>"
+            "<b>Retrieval:</b> MMR (k=5)<br>"
+            "<b>Framework:</b> LangChain"
             "</div>",
             unsafe_allow_html=True,
         )
@@ -205,34 +196,12 @@ def render_sidebar():
             st.info("Restart the app to include this document in the knowledge base.")
 
 
-def render_source_cards(sources):
-    """Renders source attribution cards for retrieved documents."""
-    if not sources:
-        return
-
-    st.markdown(
-        '<div class="sources-header">📎 Sources</div>',
-        unsafe_allow_html=True,
-    )
-
-    for source in sources:
-        st.markdown(
-            f'<div class="source-card">'
-            f'<div class="source-topic">{source["topic"]}</div>'
-            f'<div class="source-detail">'
-            f'Section: {source["section"]} · Chunk: {source["chunk_id"]}'
-            f"</div>"
-            f"</div>",
-            unsafe_allow_html=True,
-        )
-
-
 def render_suggested_questions(questions):
     """Renders suggested follow-up questions as clickable buttons."""
     if not questions:
         return
 
-    st.markdown("**💡 You may also ask:**")
+    st.markdown("<br>**💡 You may also ask:**", unsafe_allow_html=True)
     for i, q in enumerate(questions):
         if st.button(q, key=f"suggestion_{len(st.session_state.messages)}_{i}"):
             st.session_state.pending_question = q
@@ -273,10 +242,8 @@ def main():
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
-            # Re-render sources and suggestions for assistant messages
+            # Re-render suggestions for assistant messages (sources removed per request)
             if message["role"] == "assistant":
-                if message.get("sources"):
-                    render_source_cards(message["sources"])
                 if message.get("suggested_questions"):
                     render_suggested_questions(message["suggested_questions"])
 
@@ -303,21 +270,18 @@ def main():
                 st.session_state.agent.stream(prompt)
             )
 
-            # Get sources and suggested questions
-            sources = st.session_state.agent.get_sources()
+            # Get suggested questions (sources removed per request)
             suggested = st.session_state.agent.get_suggested_questions(
                 full_response
             )
 
-            # Render source cards and suggestions
-            render_source_cards(sources)
+            # Render suggestions
             render_suggested_questions(suggested)
 
-        # Save assistant message with metadata
+        # Save assistant message
         st.session_state.messages.append({
             "role": "assistant",
             "content": full_response,
-            "sources": sources,
             "suggested_questions": suggested,
         })
 
